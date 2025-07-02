@@ -1,8 +1,8 @@
 #include <ESP8266WiFi.h>
 
-#ifndef STASSID
-#define STASSID "********"
-#define STAPSK "********"
+#ifndef STASSID|||
+#define STASSID "**********"
+#define STAPSK "**********"
 #endif
 
 const char* ssid = STASSID;
@@ -35,6 +35,33 @@ const char* available_requests[] = {
 };
 
 const int available_request_num = sizeof(available_requests) / sizeof(available_requests[0]);
+
+String serial_receive_buffer = "";
+
+int parseSerialLine(const String& line, int& temp, int& hum, float& lum) {
+  int idx1 = line.indexOf(',');
+  int idx2 = line.indexOf(',', idx1 + 1);
+
+  if (idx1 < 0 || idx2 < 0) {
+    Serial.println("Invalid environment data");
+    return -1;
+  }
+
+  String part1 = line.substring(0, idx1);
+  String part2 = line.substring(idx1 + 1, idx2);
+  String part3 = line.substring(idx2 + 1);
+
+  temp = part1.toInt();
+  hum = part2.toInt();
+  lum = part3.toFloat();
+
+  Serial.println("Received environment data:");
+  Serial.println("  temp = " + String(temp));
+  Serial.println("  hum = " + String(hum));
+  Serial.println("  lum = " + String(lum));
+
+  return 0;
+}
 
 void setup() {
   Serial.begin(115200);
@@ -77,6 +104,56 @@ void loop() {
   // Read the first line of the request
   String req = client.readStringUntil('\r');
   Serial.println(req);
+
+  int temp = 0;
+  int hum = 0;
+  float lum = 0.00;
+
+  if (req.indexOf("/env") != -1) {
+    // Flush possible previous input
+    while (Serial.available()) Serial.read();
+
+    Serial.println("/env");
+
+    unsigned long timeout = 1000; // 1 second timeout
+    unsigned long start_time = millis();
+
+    // Will keep reading serial input for the specified timeout
+    while(millis() - start_time < timeout) {
+      while(Serial.available()) {
+        char ch = Serial.read();
+        if(ch == '\n') {
+          if(parseSerialLine(serial_receive_buffer, temp, hum, lum) < 0){
+            return;
+          }
+
+          String data_formatted = "{";
+          data_formatted += "\"temp\":" + String(temp) + ",";
+          data_formatted += "\"hum\":" + String(hum) + ",";
+          data_formatted += "\"lum\":" + String(lum, 2);
+          data_formatted += "}";
+
+          client.print("HTTP/1.1 200 OK\r\n");
+          client.print("Content-Type: application/json\r\n");
+          client.print("Content-Length: ");
+          client.print(data_formatted.length());
+          client.print("\r\n\r\n");
+          client.print(data_formatted);
+
+          serial_receive_buffer = "";
+          return;
+        }
+        else {
+          serial_receive_buffer += ch;
+        }
+      }
+    }
+
+    // If we reach this point, the rasp response timed out
+    Serial.println("Timed out waiting for raspberry response");
+    req = "";
+    return;
+  }
 
   // Match the request
   bool valid_req = false;

@@ -54,6 +54,18 @@ def main():
             command = request.splitlines()[1]
             print(command)
 
+            if(command == "/env"):
+                temp = 21
+                hum = 60
+                lum = 0.32
+
+                serial.write(str(temp))
+                serial.write(",")
+                serial.write(str(hum))
+                serial.write(",")
+                serial.write(str(lum))
+                serial.write("\r\n")
+
         control_house(leds_state, doors_state)
 
 
