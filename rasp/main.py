@@ -68,10 +68,10 @@ def main():
             temp, hum = dht_sensor.measure()
             lum.read_sensor()
             if lum <= 0.5:
-                for led, state in leds_state:
+                for led, _ in leds_state:
                     leds_state[led] = True
             else:
-                for led, state in leds_state:
+                for led, _ in leds_state:
                     leds_state[led] = False
             if temp >= 30:
                 fan.value(1)
@@ -131,6 +131,8 @@ def main():
 
             if(command == '/red-light/0'):
                 leds_state['house_red'] = False
+                leds_state['house_green'] = False
+                leds_state['house_blue'] = False 
 
             if(command == '/red-light/1'):
                 leds_state['house_green'] = False
@@ -138,7 +140,9 @@ def main():
                 leds_state['house_blue'] = False 
 
             if(command == '/green-light/0'):
+                leds_state['house_red'] = False
                 leds_state['house_green'] = False
+                leds_state['house_blue'] = False 
 
             if(command == '/green-light/1'):
                 leds_state['house_green'] = True
@@ -146,7 +150,9 @@ def main():
                 leds_state['house_blue'] = False   
 
             if(command == '/blue-light/0'):
-                leds_state['house_blue'] = False
+                leds_state['house_red'] = False
+                leds_state['house_green'] = False
+                leds_state['house_blue'] = False 
 
             if(command == '/blue-light/1'):
                 leds_state['house_green'] = False
@@ -178,6 +184,9 @@ def main():
 
             if(command == '/mode/wakeup'):
                 leds_state['house_white'] = True
+                leds_state['house_green'] = True
+                leds_state['house_red'] = True
+                leds_state['house_blue'] = True
                 control_house(leds_state, doors_state)
                 song = [('C4', 0.3), ('C4', 0.3), ('D4', 0.3), ('C4', 0.3), ('F4', 0.3), ('E4', 0.6),
                         ('C4', 0.3), ('C4', 0.3), ('D4', 0.3), ('C4', 0.3), ('G4', 0.3), ('F4', 0.6),
